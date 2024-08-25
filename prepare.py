@@ -1,65 +1,157 @@
+from PIL import Image, ImageChops, ImageOps
+import os
 import cv2
 import numpy as np
 
+
 root = "./images"
 
+
+# 글자 가장자리 여백을 자르는 함수
 def crop(image):
-    # 그레이스케일로 변환
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # 이미지를 흑백으로 변환
+    grayscale_image = image.convert("L")
 
-    # 흰색 배경을 검정색 글자와 분리 (임계처리)
-    _, thresh = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY_INV)
+    # 흰색 배경을 투명하게 설정 (255는 완전 흰색을 의미)
+    inverted_image = ImageOps.invert(grayscale_image)
 
-    # 가장 큰 윤곽선 찾기
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if contours:
-        # 윤곽선의 경계 상자 찾기
-        x, y, w, h = cv2.boundingRect(contours[0])
-        for cnt in contours[1:]:
-            x1, y1, w1, h1 = cv2.boundingRect(cnt)
-            x = min(x, x1)
-            y = min(y, y1)
-            w = max(w, x1 + w1 - x)
-            h = max(h, y1 + h1 - y)
+    # 이미지의 경계 상자 계산
+    bbox = inverted_image.getbbox()
 
-        # 경계 상자를 이용해 이미지 자르기
-        cropped_image = image[y:y+h, x:x+w]
-        return cropped_image
+    if bbox:
+        return image.crop(bbox)
     else:
         print("crop fail")
         return image
 
 
-def transparent(image_path, output_path, cutoff=150):
-    # 이미지 읽기 (알파 채널 포함)
-    image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
-    # 이미지가 RGBA 형식이 아닌 경우, 알파 채널 추가
-    if image.shape[2] == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
+# 흰 배경을 투명화시키는 함수
+def transparent(image):
+    image = image.convert("RGBA")
+    data = image.getdata()
 
-    # 흰색 배경을 투명하게 만들기 위한 마스크 생성
-    lower_white = np.array([cutoff, cutoff, cutoff, 255], dtype=np.uint8)
-    upper_white = np.array([255, 255, 255, 255], dtype=np.uint8)
-    mask = cv2.inRange(image, lower_white, upper_white)
+    new_data = []
+    cut_off = 150
 
-    # 마스크의 흰색 부분을 투명하게 설정
-    image[mask == 255] = [255, 255, 255, 0]
+    for datum in data:
+        if datum[0] >= cut_off and datum[1] >= cut_off and datum[2] >= cut_off:
+            new_data.append((255, 255, 255, 0))
+        else:
+            new_data.append(datum)
 
-    # 투명 배경으로 변환된 이미지 저장
-    cv2.imwrite(output_path, image)
+    image.putdata(new_data)
+    return image
+
+
+def rescale_image_width(image, rescale_width, rescale_height):
+    width, height = image.size
+    new_width = int(rescale_width)
+    new_height = int(rescale_height)
+    return image.resize((new_width, new_height), Image.LANCZOS)
+
+
+def rescale_image_ratio(image, rescale_width=None, rescale_height=None):
+    width, height = image.size
+
+    if rescale_width is not None:
+        # Calculate new height preserving aspect ratio
+        aspect_ratio = width / height
+        new_width = int(rescale_width)
+        new_height = int(new_width / aspect_ratio)
+    elif rescale_height is not None:
+        # Calculate new width preserving aspect ratio
+        aspect_ratio = height / width
+        new_height = int(rescale_height)
+        new_width = int(new_height / aspect_ratio)
+    else:
+        raise ValueError("Either 'rescale_width' or 'rescale_height' must be provided.")
+
+    return image.resize((new_width, new_height), Image.LANCZOS)
+
+
+def transletters():
+    print('resizing 시작')
+    files_path = os.path.abspath("./images/combinations")
+    image_list = [os.path.join(files_path, f) for f in os.listdir(files_path) if f.lower().endswith('.png')]
+
+    letters_dir = "./images/letters"
+    if not os.path.exists(letters_dir):
+        os.makedirs(letters_dir)
+
+    for img_path in image_list:
+        image = Image.open(img_path)
+        cropped_image = crop(image)
+        result = transparent(cropped_image)
+        file_name = os.path.basename(img_path)
+        result_path = os.path.join("./images/letters", file_name)
+        result.save(result_path, "PNG")
+    files_path2 = os.path.abspath("./images/letters")
+    image_list2 = [os.path.join(files_path2, f) for f in os.listdir(files_path2) if f.endswith('.PNG')]
+    image_list2 = sorted(image_list2)
+
+    letters_dir = "./images/letters2"
+    if not os.path.exists(letters_dir):
+        os.makedirs(letters_dir)
+
+    # print(image_list2)
+    for img_path2 in image_list2:
+        background_file = './images/background.png'
+        background = Image.open(background_file)
+        image = Image.open(img_path2)
+
+        # Get the size of both images
+        bg_width, bg_height = background.size
+        img_width, img_height = image.size
+
+        # Calculate new size based on the longer dimension of the image.
+        if img_width > img_height:
+            new_width = bg_width - 10  # leave a small margin
+            scale_factor = new_width / img_width
+            new_height = int(scale_factor * img_height)
+
+        else:
+            new_height = bg_height - 10
+            scale_factor = new_height / img_height
+            new_width = int(scale_factor * img_width)
+
+            # if (new_width > bg_width):  # Check whether it exceeds other dimension of background.
+            #     new_width = bg_width - 10
+            #     scale_factor = new_width / img_width
+            #     new_height = int(scale_factor * img_height)
+
+        # Resize and center align the image.
+        resized_image = image.resize((new_width, new_height), Image.LANCZOS)
+        pos_x = (bg_width - new_width) // 2
+        pos_y = (bg_height - new_height) // 2
+
+        pos_centered = (pos_x, pos_y)
+        background.paste(resized_image, pos_centered, resized_image)
+        # background.paste(image, img_pos)
+        background_np = np.array(background)
+        background_cv = cv2.cvtColor(background_np, cv2.COLOR_RGB2BGR)
+        gray_image = cv2.cvtColor(background_cv, cv2.COLOR_BGR2GRAY)
+        _, binary_image = cv2.threshold(gray_image, 128, 255, cv2.THRESH_BINARY)
+        # Normalize image
+        normalized_image = cv2.equalizeHist(binary_image)
+        file_name = os.path.basename(img_path2)
+        result_path = os.path.join('./images/letters2', file_name)
+        # normalized_image.save(result_path, 'PNG')
+        cv2.imwrite(result_path, normalized_image)
+    print('resizing 끝')
 
 
 def run():
     for i in range(1, 41):
         # 이미지 파일 읽기
-        image = cv2.imread(root + "/input/" + str(i) + ".PNG")
+        image = Image.open(root + "/input/" + str(i) + ".PNG")
 
         # 가장자리 여백 자르기
         image = crop(image)
-        cv2.imwrite(root + "/crop/" + str(i) + ".PNG", image)
 
         # 흰 배경 투명화
-        transparent(root + "/crop/" + str(i) + ".PNG", root + "/transparent/" + str(i) + ".PNG")
-        # rescale_image_width(image, 20, 20)
-        # image.save("./crops/" + str(i) + ".PNG")
+        image = transparent(image)
+
+        # 사이즈 조정
+        rescale_image_width(image, 20, 20)
+        image.save(root + "/crop/" + str(i) + ".PNG")

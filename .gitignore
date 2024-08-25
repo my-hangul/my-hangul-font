@@ -1,1 +1,8 @@
 venv/
+.idea/
+
+images/combinations/**
+images/crop/**
+images/transparent/**
+images/letters/**
+images/letters2/**
