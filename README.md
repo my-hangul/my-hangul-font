@@ -39,6 +39,12 @@
 
 Watch the demo video [here](https://youtu.be/QwPoRHF2v-g) to see how the code can be utilized in **different web and app services**.
 
-## Repository
+## Contributors
 
-Find the project on GitHub: [my-hangul-font](https://github.com/my-hangul/my-hangul-font.git)
+<a href="https://github.com/my-hangul/my-hangul-font/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=my-hangul/my-hangul-font" />
+</a>
+<div align="right">
+
+Made with [contrib.rocks](https://contrib.rocks).
+</div>
