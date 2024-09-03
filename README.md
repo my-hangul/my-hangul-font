@@ -1,8 +1,8 @@
-# your-writing (my-hangul-font)
+# my-hangul-font
 
 ## Overview
 
-**your-writing** is a Python-based tool designed for generating user-customized Korean fonts. This project allows users to create personalized Hangul fonts using their own handwriting, addressing the limitations of existing digital handwriting apps which struggle to reflect individual styles.
+**my-hangul-font** is a Python-based tool designed for generating user-customized **Korean** fonts. This project allows users to create personalized **Hangul** fonts using their own handwriting, addressing the limitations of existing digital handwriting apps which struggle to reflect individual styles.
 
 ## Features
 
