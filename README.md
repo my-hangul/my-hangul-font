@@ -28,7 +28,8 @@
 
 2. **Place images of Hangul characters** (ㄱ ~ ㅎ, ㅏ ~ ㅢ) in the `images/input` folder. (total 40)
 
-3. **Run the following command to generate the font file `font.ttf`**:
+3. **Run the following command to generate the font file `font.ttf`**:<br/>
+   > _**Important**: The next step requires a **Linux server** because the **fontforge** library, which is necessary for generating the font file, only runs on Linux._
    ```bash
    python3 main.py
    ```
